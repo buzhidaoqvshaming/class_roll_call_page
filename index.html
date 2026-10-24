@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <title>随机点名</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+  <style>
+    :root {
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --line: #ffffff1a;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(900px 600px at 15% -10%, #1d4ed84d, transparent 70%),
+        radial-gradient(800px 600px at 100% 0%, #7c3aed33, transparent 70%),
+        linear-gradient(170deg, #16233a, #0b1220 60%);
+      background-attachment: fixed;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 840px;
+      margin: 0 auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: .02em
+    }
+
+    .ghost {
+      font-family: inherit;
+      font-size: .9rem;
+      color: var(--text);
+      cursor: pointer;
+      background: #ffffff12;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 16px;
+      transition: background .15s;
+    }
+
+    .ghost:hover {
+      background: #ffffff1f
+    }
+
+    .ghost:active {
+      transform: scale(.97)
+    }
+
+    .stage {
+      flex: 1;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 0;
+    }
+
+    .name {
+      font-size: clamp(2.8rem, 13vw, 6.5rem);
+      font-weight: 800;
+      line-height: 1.15;
+      text-align: center;
+      letter-spacing: .03em;
+      word-break: break-word;
+      max-width: 100%;
+      background: linear-gradient(135deg, #7dd3fc, #a78bfa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .name.rolling {
+      opacity: .85
+    }
+
+    .name.winner {
+      animation: win .55s cubic-bezier(.2, 1.5, .4, 1)
+    }
+
+    @keyframes win {
+      0% {
+        transform: scale(.72)
+      }
+
+      55% {
+        transform: scale(1.07)
+      }
+
+      100% {
+        transform: scale(1)
+      }
+    }
+
+    .hint {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: .95rem;
+      text-align: center;
+      min-height: 1.4em
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap
+    }
+
+    .primary {
+      font-family: inherit;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0b1220;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      border: none;
+      border-radius: 16px;
+      padding: 16px 52px;
+      cursor: pointer;
+      box-shadow: 0 10px 30px #38bdf840, inset 0 2px 0 #ffffff45;
+      transition: transform .12s, box-shadow .2s, opacity .2s;
+    }
+
+    .primary:hover:not(:disabled) {
+      box-shadow: 0 14px 38px #38bdf860, inset 0 2px 0 #ffffff45
+    }
+
+    .primary:active:not(:disabled) {
+      transform: scale(.96)
+    }
+
+    .primary:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      box-shadow: none
+    }
+
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .92rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none
+    }
+
+    .switch input {
+      appearance: none;
+      -webkit-appearance: none;
+      margin: 0;
+      cursor: pointer;
+      width: 42px;
+      height: 24px;
+      border-radius: 999px;
+      background: #ffffff20;
+      position: relative;
+      transition: background .2s;
+    }
+
+    .switch input::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform .2s;
+    }
+
+    .switch input:checked {
+      background: linear-gradient(135deg, #38bdf8, #818cf8)
+    }
+
+    .switch input:checked::after {
+      transform: translateX(18px)
+    }
+
+    .stats {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: .9rem
+    }
+
+    .link {
+      font-family: inherit;
+      font-size: .9rem;
+      color: #7dd3fc;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff08;
+      padding: 0 14px
+    }
+
+    summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 12px 0;
+      font-size: .9rem;
+      color: var(--muted)
+    }
+
+    summary::-webkit-details-marker {
+      display: none
+    }
+
+    summary::before {
+      content: "▸";
+      display: inline-block;
+      margin-right: 8px;
+      transition: transform .2s
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg)
+    }
+
+    #calledUl {
+      list-style: none;
+      margin: 0;
+      padding: 0 0 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-height: 180px;
+      overflow: auto;
+    }
+
+    #calledUl li {
+      background: #ffffff12;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: .88rem;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: #000000a8;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .modal.show {
+      display: flex
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 520px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      background: #111c2e;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 24px 60px #000a;
+    }
+
+    .modal-box h2 {
+      margin: 0 0 6px;
+      font-size: 1.15rem
+    }
+
+    .modal-box .tip {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: .85rem;
+      line-height: 1.5
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 170px;
+      resize: vertical;
+      font-family: inherit;
+      font-size: 1rem;
+      line-height: 1.7;
+      color: var(--text);
+      background: #0b1220;
+      border: 1px solid #ffffff20;
+      border-radius: 12px;
+      padding: 12px;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #38bdf880
+    }
+
+    .file-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap
+    }
+
+    .file-btn {
+      font-size: .88rem;
+      color: var(--text);
+      cursor: pointer;
+      background: #ffffff12;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 16px;
+      transition: background .15s;
+    }
+
+    .file-btn:hover {
+      background: #ffffff1f
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: .82rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 220px
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 20px
+    }
+
+    .modal-actions .primary {
+      padding: 12px 32px;
+      font-size: 1rem;
+      border-radius: 12px
+    }
+
+    @media (max-width:480px) {
+      .primary {
+        padding: 15px 40px
+      }
+
+      .modal-box {
+        padding: 20px
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app">
+    <header>
+      <h1>🎯 随机点名</h1>
+      <button id="btnImport" class="ghost">导入名单</button>
+    </header>
+
+    <div class="stage">
+      <div id="display" class="name">准备开始</div>
+      <div id="hint" class="hint"></div>
+    </div>
+
+    <div class="controls">
+      <button id="btnRoll" class="primary" disabled>开始点名</button>
+      <label class="switch">
+        <input type="checkbox" id="noRepeat">
+        <span>不重复</span>
+      </label>
+    </div>
+
+    <div class="stats" id="stats">
+      <span id="statText">已点 0 / 0</span>
+      <button id="btnReset" class="link">重置记录</button>
+    </div>
+
+    <details id="calledDetails">
+      <summary>已点名单（<span id="calledCount">0</span>）</summary>
+      <ul id="calledUl"></ul>
+    </details>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <h2>导入名单</h2>
+      <p class="tip">每行一个名字，也可用逗号、顿号、分号分隔。在这里导入的名单会覆盖代码里的默认名单；刷新后仍保留，直到代码中的 NAMES_VERSION 变化。</p>
+      <textarea id="inputArea" placeholder="张三&#10;李四&#10;王五"></textarea>
+      <div class="file-row">
+        <label class="file-btn">
+          📄 从文件导入
+          <input type="file" id="fileInput" accept=".txt,.csv,text/plain" hidden>
+        </label>
+        <span id="fileName" class="muted"></span>
+      </div>
+      <div class="modal-actions">
+        <button id="btnCancel" class="ghost">取消</button>
+        <button id="btnSave" class="primary">保存名单</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* ============================================================
+         ① 在这里写你班级的名单
+         每个名字用单引号包起来，后面加逗号。
+         修改完名单后，把下面的 NAMES_VERSION 也改一下
+         （比如从 '1' 改成 '2'），这样刷新页面就能用新名单。
+         ============================================================ */
+      var DEFAULT_NAMES = [
+        '陈建行',
+        '陈思超',
+        '陈潇然',
+        '陈跃豪',
+        '池瑞杰',
+        '韩泽宇',
+        '胡浩宇',
+        '黄昊宸',
+        '黄浩轩',
+        '李佳霖',
+        '李垲圻',
+        '林程瀚',
+        '林锐',
+        '林依涵',
+        '鲁俊昊',
+        '潘成涛',
+        '彭茂浩',
+        '邵润轩',
+        '施俊杰',
+        '苏夏琴',
+        '孙瑞鑫',
+        '滕梓炀',
+        '汪莹珊',
+        '王奥茹',
+        '王博涛',
+        '王茜茜',
+        '文冰',
+        '吴卓朋',
+        '徐俊浩',
+        '徐瑞城',
+        '徐卓阳',
+        '杨锦程',
+        '叶柏琦',
+        '叶子',
+        '尤宸轩',
+        '于君浩',
+        '王子涵',
+        '张以铖',
+        '庄思琪',
+        '陈宋',
+        '金子渊'
+      ];
+
+      var NAMES_VERSION = '1';   // 修改 DEFAULT_NAMES 后请改这里，比如改成 '2'
+
+      /* ============================================================ */
+
+      var NAMES_KEY = 'rollcall.names.v1';
+      var CALLED_KEY = 'rollcall.called.v1';
+      var VERSION_KEY = 'rollcall.namesVersion.v1';
+
+      var $ = function (id) { return document.getElementById(id); };
+
+      var displayEl = $('display');
+      var hintEl = $('hint');
+      var btnRoll = $('btnRoll');
+      var btnImport = $('btnImport');
+      var btnReset = $('btnReset');
+      var noRepeat = $('noRepeat');
+      var statText = $('statText');
+      var calledUl = $('calledUl');
+      var calledCount = $('calledCount');
+      var modal = $('modal');
+      var inputArea = $('inputArea');
+      var fileInput = $('fileInput');
+      var fileNameEl = $('fileName');
+      var statsEl = $('stats');
+      var detailsEl = $('calledDetails');
+
+      var names = [];
+      var called = [];
+      var rolling = false;
+
+      /* ---------------- 本地存储 ---------------- */
+      function readArray(key) {
+        try {
+          var v = JSON.parse(localStorage.getItem(key) || '[]');
+          return Array.isArray(v) ? v : [];
+        } catch (e) {
+          return [];
+        }
+      }
+      function saveNames() { localStorage.setItem(NAMES_KEY, JSON.stringify(names)); }
+      function saveCalled() { localStorage.setItem(CALLED_KEY, JSON.stringify(called)); }
+
+      function cleanNames(arr) {
+        var seen = Object.create(null);
+        var out = [];
+        arr.forEach(function (s) {
+          if (typeof s !== 'string') return;
+          var n = s.trim();
+          if (!n || seen[n]) return;
+          seen[n] = 1;
+          out.push(n);
+        });
+        return out;
+      }
+
+      function load() {
+        var storedVersion = localStorage.getItem(VERSION_KEY);
+        var storedNames = readArray(NAMES_KEY);
+
+        if (storedVersion !== NAMES_VERSION) {
+          // 代码里的名单版本变了（或第一次打开）：使用代码里的默认名单
+          names = cleanNames(DEFAULT_NAMES);
+          called = [];
+          saveNames();
+          saveCalled();
+          localStorage.setItem(VERSION_KEY, NAMES_VERSION);
+        } else {
+          // 版本一致：使用浏览器里保存的名单（可能是默认名单，也可能是导入过的）
+          names = cleanNames(storedNames);
+          called = readArray(CALLED_KEY).filter(function (s) {
+            return names.indexOf(s) !== -1;
+          });
+        }
+      }
+
+      /* ---------------- 渲染 ---------------- */
+      function renderStats() {
+        var total = names.length;
+        var done = called.length;
+
+        var showCalled = !noRepeat.checked;
+        statsEl.style.display = showCalled ? '' : 'none';
+        detailsEl.style.display = showCalled ? '' : 'none';
+
+        statText.textContent = '已点 ' + done + ' / ' + total;
+        calledCount.textContent = done;
+
+        calledUl.innerHTML = '';
+        called.forEach(function (n) {
+          var li = document.createElement('li');
+          li.textContent = n;
+          calledUl.appendChild(li);
+        });
+
+        if (!total) {
+          hintEl.textContent = '名单为空，请点击右上角“导入名单”';
+          btnRoll.disabled = true;
+          return;
+        }
+
+        btnRoll.disabled = rolling;
+
+        if (noRepeat.checked) {
+          if (done === 0) {
+            hintEl.textContent = '共 ' + total + ' 人';
+          } else {
+            var left = Math.max(total - done, 0);
+            hintEl.textContent = left > 0 ? '' : '已全部点完';
+          }
+        } else {
+          hintEl.textContent = '共 ' + total + ' 人';
+        }
+      }
+
+      function showIdleText() {
+        displayEl.classList.remove('winner', 'rolling');
+        displayEl.textContent = names.length ? '准备开始' : '暂无名单';
+      }
+
+      /* ---------------- 名单解析 ---------------- */
+      function parseNames(text) {
+        var arr = text
+          .split(/[\n\r,，、;；\t]+/)
+          .map(function (s) { return s.trim(); })
+          .filter(Boolean);
+        return cleanNames(arr);
+      }
+
+      /* ---------------- 点名 ---------------- */
+      function getPool() {
+        if (!noRepeat.checked) return names.slice();
+        return names.filter(function (n) { return called.indexOf(n) === -1; });
+      }
+
+      function startRoll() {
+        if (rolling) return;
+
+        if (!names.length) { openModal(); return; }
+
+        var pool = getPool();
+        if (!pool.length) {
+          if (noRepeat.checked) {
+            resetCalled();
+            pool = getPool();
+            if (!pool.length) return;
+          } else {
+            return;
+          }
+        }
+
+        rolling = true;
+        btnRoll.disabled = true;
+        btnRoll.textContent = '点名中…';
+        displayEl.classList.remove('winner');
+        displayEl.classList.add('rolling');
+
+        var startTime = performance.now();
+        var duration = 1700 + Math.random() * 700;
+        var lastFlip = -1;
+
+        function tick(now) {
+          var elapsed = now - startTime;
+          var p = Math.min(elapsed / duration, 1);
+          var interval = 40 + 220 * Math.pow(p, 2.4);
+
+          if (lastFlip < 0 || elapsed - lastFlip >= interval) {
+            lastFlip = elapsed;
+            var next = pool[Math.floor(Math.random() * pool.length)];
+            if (pool.length > 1) {
+              var guard = 0;
+              while (next === displayEl.textContent && guard++ < 10) {
+                next = pool[Math.floor(Math.random() * pool.length)];
+              }
+            }
+            displayEl.textContent = next;
+          }
+
+          if (p < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            finishRoll(pool);
+          }
+        }
+        requestAnimationFrame(tick);
+      }
+
+      function finishRoll(pool) {
+        var picked = pool[Math.floor(Math.random() * pool.length)];
+
+        displayEl.classList.remove('rolling');
+        displayEl.textContent = picked;
+        displayEl.classList.remove('winner');
+        void displayEl.offsetWidth;
+        displayEl.classList.add('winner');
+
+        called.push(picked);
+        saveCalled();
+
+        rolling = false;
+        btnRoll.textContent = '再来一次';
+        renderStats();
+      }
+
+      function resetCalled() {
+        called = [];
+        saveCalled();
+        showIdleText();
+        btnRoll.textContent = '开始点名';
+        renderStats();
+      }
+
+      /* ---------------- 弹窗 ---------------- */
+      function openModal() {
+        inputArea.value = names.join('\n');
+        fileNameEl.textContent = '';
+        fileInput.value = '';
+        modal.classList.add('show');
+        if (window.innerWidth > 600) {
+          setTimeout(function () { inputArea.focus(); }, 60);
+        }
+      }
+      function closeModal() {
+        modal.classList.remove('show');
+      }
+
+      function saveFromInput() {
+        var parsed = parseNames(inputArea.value);
+        if (!parsed.length) {
+          alert('名单不能为空，请至少输入一个名字。');
+          return;
+        }
+
+        names = parsed;
+        called = called.filter(function (n) { return names.indexOf(n) !== -1; });
+
+        saveNames();
+        saveCalled();
+
+        closeModal();
+        showIdleText();
+        btnRoll.textContent = '开始点名';
+        renderStats();
+      }
+
+      /* ---------------- 事件绑定 ---------------- */
+      btnRoll.addEventListener('click', startRoll);
+      btnImport.addEventListener('click', openModal);
+      $('btnSave').addEventListener('click', saveFromInput);
+      $('btnCancel').addEventListener('click', closeModal);
+
+      btnReset.addEventListener('click', function () {
+        if (!called.length) return;
+        if (confirm('确定要清空已点记录吗？')) resetCalled();
+      });
+
+      noRepeat.addEventListener('change', renderStats);
+
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeModal();
+      });
+
+      fileInput.addEventListener('change', function () {
+        var f = fileInput.files && fileInput.files[0];
+        if (!f) return;
+        fileNameEl.textContent = f.name;
+
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var buf = e.target.result;
+          var text = '';
+          try {
+            text = new TextDecoder('utf-8').decode(buf);
+            if (text.indexOf('\uFFFD') !== -1) {
+              text = new TextDecoder('gbk').decode(buf);
+            }
+          } catch (err) {
+            text = new TextDecoder('utf-8').decode(buf);
+          }
+          inputArea.value = text;
+        };
+        reader.readAsArrayBuffer(f);
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (modal.classList.contains('show')) {
+          if (e.key === 'Escape') closeModal();
+          return;
+        }
+        var tag = (e.target.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea') return;
+
+        if (e.code === 'Space' || e.key === 'Enter') {
+          e.preventDefault();
+          if (!rolling) startRoll();
+        }
+      });
+
+      /* ---------------- 启动 ---------------- */
+      load();
+      showIdleText();
+      renderStats();
+    })();
+  </script>
+</body>
+
+</html>
