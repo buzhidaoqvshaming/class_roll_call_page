@@ -464,47 +464,11 @@
          （比如从 '1' 改成 '2'），这样刷新页面就能用新名单。
          ============================================================ */
       var DEFAULT_NAMES = [
-        '陈建行',
-        '陈思超',
-        '陈潇然',
-        '陈跃豪',
-        '池瑞杰',
-        '韩泽宇',
-        '胡浩宇',
-        '黄昊宸',
-        '黄浩轩',
-        '李佳霖',
-        '李垲圻',
-        '林程瀚',
-        '林锐',
-        '林依涵',
-        '鲁俊昊',
-        '潘成涛',
-        '彭茂浩',
-        '邵润轩',
-        '施俊杰',
-        '苏夏琴',
-        '孙瑞鑫',
-        '滕梓炀',
-        '汪莹珊',
-        '王奥茹',
-        '王博涛',
-        '王茜茜',
-        '文冰',
-        '吴卓朋',
-        '徐俊浩',
-        '徐瑞城',
-        '徐卓阳',
-        '杨锦程',
-        '叶柏琦',
-        '叶子',
-        '尤宸轩',
-        '于君浩',
-        '王子涵',
-        '张以铖',
-        '庄思琪',
-        '陈宋',
-        '金子渊'
+        '张三',
+        '李四',
+        '王五',
+        '赵六',
+        '钱七'
       ];
 
       var NAMES_VERSION = '1';   // 修改 DEFAULT_NAMES 后请改这里，比如改成 '2'
@@ -567,14 +531,12 @@
         var storedNames = readArray(NAMES_KEY);
 
         if (storedVersion !== NAMES_VERSION) {
-          // 代码里的名单版本变了（或第一次打开）：使用代码里的默认名单
           names = cleanNames(DEFAULT_NAMES);
           called = [];
           saveNames();
           saveCalled();
           localStorage.setItem(VERSION_KEY, NAMES_VERSION);
         } else {
-          // 版本一致：使用浏览器里保存的名单（可能是默认名单，也可能是导入过的）
           names = cleanNames(storedNames);
           called = readArray(CALLED_KEY).filter(function (s) {
             return names.indexOf(s) !== -1;
@@ -587,9 +549,10 @@
         var total = names.length;
         var done = called.length;
 
-        var showCalled = !noRepeat.checked;
-        statsEl.style.display = showCalled ? '' : 'none';
-        detailsEl.style.display = showCalled ? '' : 'none';
+        // 开启“不重复”时才显示已点区域和剩余人数；关闭时隐藏
+        var noRep = noRepeat.checked;
+        statsEl.style.display = noRep ? '' : 'none';
+        detailsEl.style.display = noRep ? '' : 'none';
 
         statText.textContent = '已点 ' + done + ' / ' + total;
         calledCount.textContent = done;
@@ -609,14 +572,16 @@
 
         btnRoll.disabled = rolling;
 
-        if (noRepeat.checked) {
-          if (done === 0) {
-            hintEl.textContent = '共 ' + total + ' 人';
+        if (noRep) {
+          // 不重复模式：显示剩余人数
+          var left = Math.max(total - done, 0);
+          if (left > 0) {
+            hintEl.textContent = '共 ' + total + ' 人 · 剩余 ' + left + ' 人';
           } else {
-            var left = Math.max(total - done, 0);
-            hintEl.textContent = left > 0 ? '' : '已全部点完';
+            hintEl.textContent = '共 ' + total + ' 人 · 已全部点完，再次点名将重新开始';
           }
         } else {
+          // 允许重复模式：不显示剩余人数
           hintEl.textContent = '共 ' + total + ' 人';
         }
       }
